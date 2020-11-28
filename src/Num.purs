@@ -1,7 +1,7 @@
 module Num where
 
-import Data.Unit (Unit, unit)
 import Data.Symbol (SProxy(..))
+import Data.Unit (Unit, unit)
 import Prim.Boolean (True, kind Boolean)
 import Prim.Ordering (EQ, GT, LT, kind Ordering)
 import Prim.Symbol (class Cons)
@@ -80,6 +80,11 @@ class AreEqual (a :: Num) (b :: Num) (result :: Boolean) | a b -> result
 instance areEqualZero :: AreEqual Zero Zero True
 else instance areEqualSucc :: AreEqual a b c => AreEqual (Succ a) (Succ b) c
 
+class Factorial (input :: Num) (output :: Num) | input -> output
+
+instance factorialZero :: Factorial Zero (Succ Zero)
+instance factorialSucc :: (Factorial a a', Multiply a' (Succ a) result) => Factorial (Succ a) result
+
 -- Ordering
 class Compare (a :: Num) (b :: Num) (output :: Ordering) 
   | a b -> output
@@ -154,6 +159,9 @@ parse _ = NProxy
 equal :: forall a b. AreEqual a b True => NProxy a -> NProxy b -> Unit
 equal _ _ = unit
 
+factorial :: forall a b. Factorial a b => NProxy a -> NProxy b
+factorial _ = NProxy
+
 -- Basic values
 type One = Succ Zero
 type Two = Succ One
@@ -223,3 +231,9 @@ parse64 = equal (parse _64) (pow two six)
   where
   _64 :: SProxy "64"
   _64 = SProxy
+
+fac3 :: NProxy (Succ (Succ (Succ (Succ (Succ (Succ Zero))))))
+fac3 = factorial (parse _3)
+  where
+  _3 :: SProxy "3"
+  _3 = SProxy

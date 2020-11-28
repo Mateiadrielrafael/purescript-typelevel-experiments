@@ -18,7 +18,7 @@ nil = undefined
 merge :: forall l1 l2 l3 a. Add l1 l2 l3 => Vec l1 a -> Vec l2 a -> Vec l3 a
 merge = undefined
 
-lookup :: forall l i a. Vec l a -> Compare i l LT => NProxy i -> a
+lookup :: forall length index a. Compare index length LT => Vec length a -> NProxy index -> a
 lookup = undefined
 
 take :: forall l i a. Compare i l LT => NProxy i -> Vec l a -> Vec i a
