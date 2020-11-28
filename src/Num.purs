@@ -1,0 +1,163 @@
+module Num where
+
+import Prim.Ordering (EQ, GT, LT, kind Ordering)
+
+foreign import kind Num
+
+foreign import data Zero :: Num
+foreign import data Succ :: Num -> Num
+
+data NProxy (i :: Num)
+  = NProxy
+
+-- Predecessor
+class Pred (input :: Num) (output :: Num) | input -> output, output -> input
+
+instance predSucc :: Pred (Succ a) a
+
+-- Addition
+class Add (a :: Num) (b :: Num) (output :: Num) 
+  | a b -> output
+  , a output -> b
+
+instance addZero :: Add Zero a a
+else instance addSucc :: Add a b c => Add (Succ a) b (Succ c)
+
+-- Substraction 
+class Sub (a :: Num) (b :: Num) (output :: Num) 
+  | a b -> output
+  , b output -> a
+
+instance subZero :: Sub a Zero a
+else instance subSucc :: Sub a b c => Sub (Succ a) (Succ b) c
+
+-- Multiplication 
+class Multiply (a :: Num) (b :: Num) (output :: Num) 
+  | a b -> output
+
+instance multiplyZero :: Multiply Zero a Zero
+else instance multiplySucc :: (Multiply a b c, Add b c result) => Multiply (Succ a) b result
+
+-- Division
+class Divide'
+  (a :: Num) 
+  (b :: Num) 
+  (result :: Num) 
+  (mod :: Num) 
+  (ord :: Ordering)
+  | a b ord -> result mod
+
+instance divideZero :: Divide' Zero a Zero Zero LT
+else instance divideMod :: Divide' a b Zero a LT
+else instance divideSucc :: (Divide a b result mod, Sub a' b a) => Divide' a' b (Succ result) mod ord
+
+class Divide 
+  (a :: Num) 
+  (b :: Num) 
+  (result :: Num) 
+  (mod :: Num) 
+  | a b -> result mod
+
+instance divideAndCompare :: (Compare a b ord, Divide' a b result mod ord) => Divide a b result mod
+
+-- Raising to power
+class Pow (base :: Num) (power :: Num) (output :: Num) 
+  | base power -> output
+  -- Does this work?
+  -- , power output -> base
+
+instance powZero :: Pow Zero a (Succ Zero) 
+else instance powOne :: Pow a (Succ Zero) a
+else instance powSucc :: (Pow a b c, Multiply c a result) => Pow a (Succ b) result 
+
+-- Ordering
+class Compare (a :: Num) (b :: Num) (output :: Ordering) 
+  | a b -> output
+
+instance compareEqual :: Compare Zero Zero EQ
+else instance compareZeroLower :: Compare Zero a LT
+else instance compareZeroGreater :: Compare a Zero GT
+else instance compareSucc :: Compare a b c => Compare (Succ a) (Succ b) c
+
+-- Constructors
+zero :: NProxy Zero
+zero = NProxy
+
+succ :: forall a. NProxy a -> NProxy (Succ a)
+succ _ = NProxy
+
+pred :: forall i o. Pred i o => NProxy i -> NProxy o
+pred _ = NProxy
+
+add :: forall a b c. Add a b c => NProxy a -> NProxy b -> NProxy c
+add _ _ = NProxy
+
+sub :: forall a b c. Sub a b c => NProxy a -> NProxy b -> NProxy c
+sub _ _ = NProxy
+
+multiply :: forall a b c. Multiply a b c => NProxy a -> NProxy b -> NProxy c
+multiply _ _ = NProxy
+
+pow :: forall a b c. Pow a b c => NProxy a -> NProxy b -> NProxy c
+pow _ _  = NProxy 
+
+divide ::forall a b c d. Divide a b c d => NProxy a -> NProxy b -> { result :: NProxy c, mod :: NProxy d }
+divide _ _  = { mod: NProxy, result: NProxy }
+
+div :: forall a b c d. Divide a b c d => NProxy a -> NProxy b -> NProxy c
+div _ _  = NProxy
+
+-- Actual values
+type One
+  = Succ Zero
+
+type Two
+  = Succ One
+
+type Three
+  = Succ Two
+
+one :: NProxy One
+one = succ zero
+
+two :: NProxy Two
+two = succ one
+
+three :: NProxy Three
+three = succ two
+
+five :: NProxy (Succ (Succ (Succ (Succ (Succ Zero)))))
+five = add two three
+
+-- Solvable when the first param is missing
+two' :: NProxy Two
+two' = sub five three
+
+six :: NProxy (Succ (Succ (Succ (Succ (Succ (Succ Zero))))))
+six = multiply three two
+
+fifteen :: NProxy (Succ (Succ (Succ (Succ (Succ (Succ Zero))))))
+fifteen = multiply three two
+
+eight :: NProxy (Succ (Succ (Succ (Succ (Succ (Succ (Succ (Succ Zero))))))))
+eight = pow two three
+
+one' :: NProxy (Succ Zero)
+one' = pow zero three
+
+four :: NProxy (Succ Three)
+four = succ three
+
+five' :: NProxy (Succ (Succ (Succ (Succ Zero))))
+five' = pow two two
+ where
+ _25 = add two (add eight fifteen)
+
+sixDivThree :: NProxy (Succ (Succ Zero))
+sixDivThree = div six three
+
+sevenDivThree :: 
+  { mod :: NProxy (Succ Zero)
+  , result :: NProxy (Succ (Succ Zero))
+  }
+sevenDivThree = divide (succ six) three
