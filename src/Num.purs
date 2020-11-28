@@ -1,6 +1,10 @@
 module Num where
 
+import Data.Unit (Unit, unit)
+import Data.Symbol (SProxy(..))
+import Prim.Boolean (True, kind Boolean)
 import Prim.Ordering (EQ, GT, LT, kind Ordering)
+import Prim.Symbol (class Cons)
 
 foreign import kind Num
 
@@ -70,6 +74,12 @@ instance powZero :: Pow Zero a (Succ Zero)
 else instance powOne :: Pow a (Succ Zero) a
 else instance powSucc :: (Pow a b c, Multiply c a result) => Pow a (Succ b) result 
 
+-- Equality checking 
+class AreEqual (a :: Num) (b :: Num) (result :: Boolean) | a b -> result
+
+instance areEqualZero :: AreEqual Zero Zero True
+else instance areEqualSucc :: AreEqual a b c => AreEqual (Succ a) (Succ b) c
+
 -- Ordering
 class Compare (a :: Num) (b :: Num) (output :: Ordering) 
   | a b -> output
@@ -78,6 +88,34 @@ instance compareEqual :: Compare Zero Zero EQ
 else instance compareZeroLower :: Compare Zero a LT
 else instance compareZeroGreater :: Compare a Zero GT
 else instance compareSucc :: Compare a b c => Compare (Succ a) (Succ b) c
+
+-- Parsing
+class ParseNum (input :: Symbol) (output :: Num) | input -> output
+
+instance parseNum :: (Cons head tail input, ParseNum' head tail output) => ParseNum input output
+
+class ParseNum' (head :: Symbol) (tail :: Symbol) (output :: Num) | head tail -> output
+
+instance parseNumSingle :: ParseDigit input result => ParseNum' input "" result
+else instance parseNumHeadTail :: 
+  ( ParseDigit head resultHead
+  , ParseNum tail resultTail
+  , Multiply resultHead (Succ (Succ (Succ (Succ (Succ (Succ (Succ (Succ (Succ (Succ Zero)))))))))) result' 
+  , Add result' resultTail result )
+    => ParseNum' head tail result
+
+class ParseDigit (input :: Symbol) (output :: Num) | input -> output, output -> input
+
+instance parseDigit0 :: ParseDigit "0" Zero
+instance parseDigit1 :: ParseDigit "1" (Succ Zero)
+instance parseDigit2 :: ParseDigit "2" (Succ (Succ Zero))
+instance parseDigit3 :: ParseDigit "3" (Succ (Succ (Succ Zero)))
+instance parseDigit4 :: ParseDigit "4" (Succ (Succ (Succ (Succ Zero))))
+instance parseDigit5 :: ParseDigit "5" (Succ (Succ (Succ (Succ (Succ Zero)))))
+instance parseDigit6 :: ParseDigit "6" (Succ (Succ (Succ (Succ (Succ (Succ Zero))))))
+instance parseDigit7 :: ParseDigit "7" (Succ (Succ (Succ (Succ (Succ (Succ (Succ Zero)))))))
+instance parseDigit8 :: ParseDigit "8" (Succ (Succ (Succ (Succ (Succ (Succ (Succ (Succ Zero))))))))
+instance parseDigit9 :: ParseDigit "9" (Succ (Succ (Succ (Succ (Succ (Succ (Succ (Succ (Succ Zero)))))))))
 
 -- Constructors
 zero :: NProxy Zero
@@ -107,16 +145,28 @@ divide _ _  = { mod: NProxy, result: NProxy }
 div :: forall a b c d. Divide a b c d => NProxy a -> NProxy b -> NProxy c
 div _ _  = NProxy
 
--- Actual values
-type One
-  = Succ Zero
+mod :: forall a b c d. Divide a b c d => NProxy a -> NProxy b -> NProxy d
+mod _ _  = NProxy
 
-type Two
-  = Succ One
+parse :: forall a n. ParseNum a n => SProxy a -> NProxy n
+parse _ = NProxy
 
-type Three
-  = Succ Two
+equal :: forall a b. AreEqual a b True => NProxy a -> NProxy b -> Unit
+equal _ _ = unit
 
+-- Basic values
+type One = Succ Zero
+type Two = Succ One
+type Three = Succ Two
+type Four = Succ Three
+type Five = Succ Four
+type Six = Succ Five
+type Seven = Succ Six
+type Eight = Succ Seven
+type Nine = Succ Eight
+type Ten = Succ Nine
+
+-- Tests
 one :: NProxy One
 one = succ zero
 
@@ -161,3 +211,15 @@ sevenDivThree ::
   , result :: NProxy (Succ (Succ Zero))
   }
 sevenDivThree = divide (succ six) three
+
+parse13 :: NProxy (Succ (Succ (Succ (Succ (Succ (Succ (Succ (Succ (Succ (Succ (Succ (Succ (Succ Zero)))))))))))))
+parse13 = parse _13
+  where
+  _13 :: SProxy "13"
+  _13 = SProxy
+
+parse64 :: Unit
+parse64 = equal (parse _64) (pow two six)
+  where
+  _64 :: SProxy "64"
+  _64 = SProxy
