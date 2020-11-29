@@ -2,7 +2,7 @@ module Num where
 
 import Data.Symbol (SProxy(..))
 import Data.Unit (Unit, unit)
-import Prim.Boolean (True, kind Boolean)
+import Prim.Boolean (False, True, kind Boolean)
 import Prim.Ordering (EQ, GT, LT, kind Ordering)
 import Prim.Symbol (class Cons)
 
@@ -18,6 +18,17 @@ data NProxy (i :: Num)
 class Pred (input :: Num) (output :: Num) | input -> output, output -> input
 
 instance predSucc :: Pred (Succ a) a
+
+-- Conditionals
+class NumIf 
+  (bool :: Boolean)
+  (onTrue :: Num)
+  (onFalse :: Num)
+  (output :: Num) 
+  | bool onTrue onFalse -> output
+
+instance ifTrue :: NumIf True onTrue onFalse onTrue
+instance ifFalse :: NumIf False onTrue onFalse onFalse
 
 -- Addition
 class Add (a :: Num) (b :: Num) (output :: Num) 
@@ -75,10 +86,11 @@ else instance powOne :: Pow a (Succ Zero) a
 else instance powSucc :: (Pow a b c, Multiply c a result) => Pow a (Succ b) result 
 
 -- Equality checking 
-class AreEqual (a :: Num) (b :: Num) (result :: Boolean) | a b -> result
+class NAreEqual (a :: Num) (b :: Num) (result :: Boolean) | a b -> result
 
-instance areEqualZero :: AreEqual Zero Zero True
-else instance areEqualSucc :: AreEqual a b c => AreEqual (Succ a) (Succ b) c
+instance areEqualZero :: NAreEqual Zero Zero True
+else instance areEqualSucc :: NAreEqual a b c => NAreEqual (Succ a) (Succ b) c
+else instance areNotEqual :: NAreEqual a b False
 
 class Factorial (input :: Num) (output :: Num) | input -> output
 
@@ -156,7 +168,7 @@ mod _ _  = NProxy
 parse :: forall a n. ParseNum a n => SProxy a -> NProxy n
 parse _ = NProxy
 
-equal :: forall a b. AreEqual a b True => NProxy a -> NProxy b -> Unit
+equal :: forall a b. NAreEqual a b True => NProxy a -> NProxy b -> Unit
 equal _ _ = unit
 
 factorial :: forall a b. Factorial a b => NProxy a -> NProxy b
